@@ -6,4 +6,4 @@ cmake_minimum_required(VERSION 3.16)
 set(EXTRA_COMPONENT_DIRS ../components/esp-idf-sx127x/components/lora)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(twai_network_master)
+project(pyromat_to_lora)

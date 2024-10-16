@@ -5,13 +5,17 @@
     "board/esp32-bridge.cfg"
   ],
   "idf.flashType": "UART",
-  "idf.port": "/dev/cu.usbserial-56BA1226601",
+  "idf.port": "/dev/tty.usbserial-56BA1226601",
   "files.associations": {
     "*.moor": "sqlite",
     "*.arb": "jsonc",
     "compare": "c",
     "array": "c",
     "string": "c",
-    "string_view": "c"
+    "string_view": "c",
+    "chrono": "c",
+    "inttypes.h": "c",
+    "freertos.h": "c",
+    "cinttypes": "c"
   },
 }

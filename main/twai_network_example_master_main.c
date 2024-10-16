@@ -88,6 +88,8 @@ typedef union OvenDataConverter_u
 
 static OvenDataConverter ovenData;
 
+// static uint64_t previousData[5000] = {0};
+
 /* --------------------------- Tasks and Functions -------------------------- */
 
 void parseData(twai_message_t *msg)
@@ -98,29 +100,23 @@ void parseData(twai_message_t *msg)
   switch (index)
   {
   case 0x1e:
-    ovenData.data.restO2 = msg->data[6] | (msg->data[7] << 8); // ok
+    ovenData.data.restO2 = msg->data[6] | (msg->data[7] << 8);
     return;
-  case 0x21:
-    ovenData.data.tempReturn = msg->data[4] | (msg->data[5] << 8); // ok check
-    ovenData.data.tempSystem = msg->data[6] | (msg->data[7] << 8); // nok
-    return;
-  case 0x24:
-    ovenData.data.tempBufferTop = msg->data[4] | (msg->data[5] << 8);    // nok
-    ovenData.data.tempBufferMiddle = msg->data[6] | (msg->data[7] << 8); // nok
-    return;
+
   case 0x27:
-    ovenData.data.tempBufferBottom = msg->data[2] | (msg->data[3] << 8); // nok
+
     return;
   case 0x42:
-    ovenData.data.clockM = msg->data[4] | (msg->data[5] << 8); // ?
-    ovenData.data.clockS = msg->data[6] | (msg->data[7] << 8); // ?
+    ovenData.data.clockM = msg->data[4] | (msg->data[5] << 8);
     return;
-  case 0x45:
-    ovenData.data.clockH = msg->data[2] | (msg->data[3] << 8); // ?
+  case 0x44:
+    ovenData.data.clockH = msg->data[4] | (msg->data[5] << 8);
+    ovenData.data.clockS = msg->data[2] | (msg->data[3] << 8);
     return;
+
   case 0x66:
-    ovenData.data.tempExhaust = msg->data[2] | (msg->data[3] << 8);   // ok check
-    ovenData.data.ventilatorRpm = msg->data[6] | (msg->data[7] << 8); // ok
+    ovenData.data.tempExhaust = msg->data[2] | (msg->data[3] << 8);
+    ovenData.data.ventilatorRpm = msg->data[6] | (msg->data[7] << 8);
     return;
   case 0x7b:
     ovenData.data.valveReturnMixing = msg->data[6] | (msg->data[7] << 8); // check
@@ -128,21 +124,41 @@ void parseData(twai_message_t *msg)
   case 0x7e:
     ovenData.data.valveBuffer = msg->data[4] | (msg->data[5] << 8);
     return;
-  case 0x87:
-    ovenData.data.airInletPrimary = msg->data[6] | (msg->data[7] << 8); // check
+  case 0x8a:
+    ovenData.data.airInletPrimary = msg->data[2] | (msg->data[3] << 8); // range anpassen  90=offen
+    return;
+  case 0x8c:
+    ovenData.data.targetRestO2 = msg->data[6] | (msg->data[7] << 8);
     return;
   case 0x8d:
-    ovenData.data.targetRestO2 = msg->data[4] | (msg->data[5] << 8); // check
+    ovenData.data.tempReturn = msg->data[6] | (msg->data[7] << 8); //  check
     return;
-  case 0x93:
-    ovenData.data.airInletSecondary = msg->data[2] | (msg->data[3] << 8); // check
+  case 0x92:
+    ovenData.data.airInletSecondary = msg->data[4] | (msg->data[5] << 8); // check 92   30 34 30
+    return;
+  case 0x9c:
+    ovenData.data.tempSystem = msg->data[6] | (msg->data[7] << 8); // target min 6-7    9e 832 850
     return;
   case 0x9f:
-    ovenData.data.targetSystemTemp = msg->data[2] | (msg->data[3] << 8); // ok check
+    ovenData.data.targetSystemTemp = msg->data[2] | (msg->data[3] << 8);
     return;
+  case 0x171:
+    ovenData.data.tempBufferTop = msg->data[4] | (msg->data[5] << 8);
+    ovenData.data.tempBufferMiddle = msg->data[6] | (msg->data[7] << 8);
+    return;
+  case 0x174:
+    ovenData.data.tempBufferBottom = msg->data[2] | (msg->data[3] << 8);
+    return;
+  // case 0x172:
+  //   ovenData.data.tempBufferTop = msg->data[2] | (msg->data[3] << 8);
+  //   ovenData.data.tempBufferMiddle = msg->data[4] | (msg->data[5] << 8);
+  //   ovenData.data.tempBufferBottom = msg->data[6] | (msg->data[7] << 8);
+  //   return;
   default:
     break;
   }
+
+  // ESP_LOGI(EXAMPLE_TAG, "Clock: %d %d %d", ovenData.data.clockH, ovenData.data.clockM, ovenData.data.clockS);
 }
 
 static void twai_receive_task(void *arg)
@@ -153,35 +169,61 @@ static void twai_receive_task(void *arg)
     twai_message_t rx_msg;
     twai_receive(&rx_msg, portMAX_DELAY);
 
-    if (usb_serial_jtag_is_connected())
-    {
+        // uint16_t from = 99;
+    // uint16_t to = 101;
+    // uint16_t v1 = (rx_msg.data[3] << 8) | (rx_msg.data[2]);
+    // uint16_t v2 = (rx_msg.data[5] << 8) | (rx_msg.data[4]);
+    // uint16_t v3 = (rx_msg.data[7] << 8) | (rx_msg.data[6]);
 
-      ESP_LOGI(EXAMPLE_TAG, "CANRX ID: %lx, dlc: %d, %lx %ld %ld %ld",
-               rx_msg.identifier,
-               rx_msg.data_length_code,
-               (msg->data[1] << 8) | msg->data[0],
-               (msg->data[3] << 8) | msg->data[2],
-               (msg->data[5] << 8) | msg->data[4],
-               (msg->data[7] << 8) | msg->data[6], );
-    }
-
-    // if (rx_msg.data[0] == 0x42)
-    //   ESP_LOGI(EXAMPLE_TAG, "CANRX ID: %lx, dlc: %d, %x %x %x %x %x %x %x %x",
-    //            rx_msg.identifier,
-    //            rx_msg.data_length_code,
-    //            rx_msg.data[0],
-    //            rx_msg.data[1],
-    //            rx_msg.data[2],
-    //            rx_msg.data[3],
-    //            rx_msg.data[4],
-    //            rx_msg.data[5],
-    //            rx_msg.data[6],
-    //            rx_msg.data[7]);
+    // if ((v1 > from && v1 < to) || (v2 > from && v2 < to) || (v3 > from && v3 < to))
+    //   ESP_LOGI(EXAMPLE_TAG, "CANRX, %04x - %04u %04u %04u",
+    //            // rx_msg.identifier,
+    //            //  rx_msg.data_length_code,
+    //            (rx_msg.data[1] << 8) | (rx_msg.data[0]),
+    //            (rx_msg.data[3] << 8) | (rx_msg.data[2]),
+    //            (rx_msg.data[5] << 8) | (rx_msg.data[4]),
+    //            (rx_msg.data[7] << 8) | (rx_msg.data[6]));
 
     if (rx_msg.identifier > 0x200 && rx_msg.identifier < 0x600)
     {
       parseData(&rx_msg);
       vTaskDelay(pdMS_TO_TICKS(5));
+
+      // uint16_t index = ((rx_msg.data[1] << 8) | rx_msg.data[0]);
+      // if (index < 5000)
+      // {
+      //   uint64_t newData = ((uint64_t)((rx_msg.data[3] << 8) | (rx_msg.data[2]))) << 32 |
+      //                      ((rx_msg.data[5] << 8) | (rx_msg.data[4])) << 16 |
+      //                      (rx_msg.data[7] << 8) | (rx_msg.data[6]);
+
+      //   uint16_t idx = (rx_msg.data[1] << 8) | rx_msg.data[0];
+
+      //   if (previousData[index] != 0 && previousData[index] != newData
+
+      //       && idx != 0x42 && idx != 0x43 && idx != 0x44)
+      //   {
+      //     ESP_LOGI(EXAMPLE_TAG, "%x New Data: %u %u %u",
+      //              (rx_msg.data[1] << 8) | rx_msg.data[0],
+      //              (rx_msg.data[3] << 8) | (rx_msg.data[2]),
+      //              (rx_msg.data[5] << 8) | (rx_msg.data[4]),
+      //              (rx_msg.data[7] << 8) | (rx_msg.data[6]));
+
+      //     if (false) // previousData[index] != 0 && previousData[index] != newData)
+      //     {
+
+      //       ESP_LOGI(EXAMPLE_TAG, "%x New Data: %u %u %u => %u %u %u",
+      //                (rx_msg.data[1] << 8) | rx_msg.data[0],
+      //                (uint16_t)(previousData[index] >> 32 & 0xFFFF),
+      //                (uint16_t)(previousData[index] >> 16 & 0xFFFF),
+      //                (uint16_t)(previousData[index] & 0xFFFF),
+      //                (rx_msg.data[3] << 8) | (rx_msg.data[2]),
+      //                (rx_msg.data[5] << 8) | (rx_msg.data[4]),
+      //                (rx_msg.data[7] << 8) | (rx_msg.data[6]));
+      //     }
+      //   }
+
+      // previousData[index] = newData;
+      // }
     }
   }
   vTaskDelete(NULL);
